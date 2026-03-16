@@ -1,0 +1,9 @@
+# Example user configuration
+# Copy this to user.cfg and fill in your values
+
+[binance_user_config]
+api_key = 
+api_secret_key = 
+bridge = USDT
+strategy = rsi
+tld = com
