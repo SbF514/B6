@@ -1,29 +1,26 @@
 # RSI Strategy - Implements RSI(21,25,95) on SOL/USDT
-# Uses REST API only - NO WEBSOCKET for price data
-
-import logging
-import time
+# Extends AutoTrader from original binance-trade-bot
 
 from .binance_api_manager import BinanceAPIManager
 from .config import Config
-from .crypto_trading import CryptoTrading
+from .crypto_trading import main
 from .database import Database
 from .logger import Logger
 from .models import Coin
+from .auto_trader import AutoTrader
 
 
-class RSIStrategy(CryptoTrading):
+class RSIStrategy(AutoTrader):
     def __init__(self, manager: BinanceAPIManager, db: Database, logger: Logger, config: Config):
         super().__init__(manager, db, logger, config)
         
-        # RSI Parameters - Hardcoded (no need to change)
+        # RSI Parameters
         self.rsi_period = 21
         self.rsi_oversold = 25
         self.rsi_overbought = 95
         
-        # Trading pair
-        self.bridge = Coin("USDT", False)
-        self.trade_coin = Coin("SOL", False)
+        # Trading pair - use config bridge and SOL
+        self.trade_coin_symbol = "SOL"
         
         # Track position
         self.position = None
@@ -31,33 +28,29 @@ class RSIStrategy(CryptoTrading):
         # Store historical prices for RSI
         self.price_history = []
         
-        # RSI calculation uses LOCAL data only - NO WEBSOCKET
         self.logger.info(f"RSI Strategy initialized: RSI({self.rsi_period},{self.rsi_oversold},{self.rsi_overbought})")
-        self.logger.info("Using REST API only - no WebSocket for price data")
 
     def initialize(self):
-        """Initialize the strategy"""
-        self.logger.info("Initializing RSI strategy")
+        """Initialize the strategy - check current position"""
+        super().initialize()
         
-        # Check current position via REST API
-        current_balance = self.manager.get_currency_balance(self.trade_coin.symbol)
-        if current_balance > 0:
+        # Check if we already hold SOL
+        current_coin = self.db.get_current_coin()
+        if current_coin and current_coin.symbol == self.trade_coin_symbol:
             self.position = "BUY"
-            self.logger.info(f"Already holding {current_balance} {self.trade_coin.symbol}")
+            self.logger.info(f"Already holding {self.trade_coin_symbol}")
         else:
             self.position = None
-            self.logger.info("Not holding any position")
+            self.logger.info(f"Not holding {self.trade_coin_symbol}")
 
     def scout(self):
-        """Main trading logic - uses REST API only"""
+        """Main trading logic - check for RSI signals"""
         try:
-            # Get current price via REST API (no WebSocket)
-            ticker = str(self.trade_coin + self.bridge)
-            current_price = self.manager.binance_client.get_symbol_ticker(symbol=ticker)
-            current_price = float(current_price['price'])
+            # Get current SOL/USDT price using original API method
+            current_price = self.manager.get_ticker_price(self.trade_coin_symbol + self.config.BRIDGE.symbol)
             
             if current_price is None:
-                self.logger.warning("Could not get price")
+                self.logger.warning(f"Could not get price for {self.trade_coin_symbol}")
                 return
             
             # Add to price history
@@ -72,33 +65,32 @@ class RSIStrategy(CryptoTrading):
                 return
             
             # Calculate RSI locally
-            rsi_value = self.calculate_rsi(self.price_history, self.rsi_period)
+            rsi_value = self._calculate_rsi(self.price_history, self.rsi_period)
             
-            self.logger.info(f"Current RSI({self.rsi_period}): {rsi_value:.2f}, Price: ${current_price}")
+            self.logger.info(f"Price: ${current_price}, RSI({self.rsi_period}): {rsi_value:.2f}")
             
             # Check signals
             if self.position is None and rsi_value < self.rsi_oversold:
-                self.logger.info(f"RSI oversold ({rsi_value:.2f} < {self.rsi_oversold}) - BUY")
-                self.execute_buy()
+                # BUY - RSI oversold
+                self.logger.info(f"RSI oversold ({rsi_value:.2f} < {self.rsi_oversold}) - Buying {self.trade_coin_symbol}")
+                self._buy_sol()
                 
             elif self.position == "BUY" and rsi_value > self.rsi_overbought:
-                self.logger.info(f"RSI overbought ({rsi_value:.2f} > {self.rsi_overbought}) - SELL")
-                self.execute_sell()
+                # SELL - RSI overbought
+                self.logger.info(f"RSI overbought ({rsi_value:.2f} > {self.rsi_overbought}) - Selling {self.trade_coin_symbol}")
+                self._sell_sol()
                 
         except Exception as e:
             self.logger.error(f"Error in scout: {e}")
 
-    def calculate_rsi(self, prices, period):
-        """Calculate RSI locally - no external data"""
+    def _calculate_rsi(self, prices, period):
+        """Calculate RSI locally"""
         if len(prices) < period + 1:
             return 50
         
-        deltas = []
-        for i in range(1, len(prices)):
-            deltas.append(prices[i] - prices[i-1])
-        
+        deltas = [prices[i] - prices[i-1] for i in range(1, len(prices))]
         gains = [d if d > 0 else 0 for d in deltas]
-        losses = [-d if d < 0 else 0 for d in deltas]
+        losses = [d if d < 0 else 0 for d in deltas]
         
         avg_gain = sum(gains[:period]) / period
         avg_loss = sum(losses[:period]) / period
@@ -107,51 +99,53 @@ class RSIStrategy(CryptoTrading):
             return 100
         
         rs = avg_gain / avg_loss
-        rsi = 100 - (100 / (1 + rs))
-        
-        return rsi
+        return 100 - (100 / (1 + rs))
 
-    def execute_buy(self):
-        """Execute buy order via REST API"""
+    def _buy_sol(self):
+        """Buy SOL using original bot method"""
         try:
-            # Check balance via REST
-            usdt_balance = self.manager.get_currency_balance(self.bridge.symbol)
+            # Use Coin model like original
+            sol_coin = Coin(self.trade_coin_symbol, False)
+            
+            # Check USDT balance using original method
+            usdt_balance = self.manager.get_currency_balance(self.config.BRIDGE.symbol)
             
             if usdt_balance < 10:
-                self.logger.warning(f"Insufficient {self.bridge.symbol} balance: {usdt_balance}")
+                self.logger.warning(f"Insufficient {self.config.BRIDGE.symbol} balance: {usdt_balance}")
                 return
             
-            self.logger.info(f"Buying {self.trade_coin.symbol} with {usdt_balance} {self.bridge.symbol}")
-            
-            # Use REST API for order
-            order = self.manager.buy_alt(self.trade_coin, self.bridge)
+            # Use original buy_alt method
+            order = self.manager.buy_alt(sol_coin, self.config.BRIDGE)
             
             if order:
                 self.position = "BUY"
-                self.logger.info(f"BUY executed: {order}")
+                self.db.set_current_coin(sol_coin)
+                self.logger.info(f"BUY order executed: {order}")
             else:
                 self.logger.warning("BUY order failed")
                 
         except Exception as e:
             self.logger.error(f"Error executing BUY: {e}")
 
-    def execute_sell(self):
-        """Execute sell order via REST API"""
+    def _sell_sol(self):
+        """Sell SOL using original bot method"""
         try:
-            coin_balance = self.manager.get_currency_balance(self.trade_coin.symbol)
+            sol_coin = Coin(self.trade_coin_symbol, False)
             
-            if coin_balance <= 0:
-                self.logger.warning(f"No {self.trade_coin.symbol} to sell")
+            # Check SOL balance using original method
+            sol_balance = self.manager.get_currency_balance(sol_coin.symbol)
+            
+            if sol_balance <= 0:
+                self.logger.warning(f"No {sol_coin.symbol} to sell")
                 return
             
-            self.logger.info(f"Selling {coin_balance} {self.trade_coin.symbol}")
-            
-            # Use REST API for order
-            order = self.manager.sell_alt(self.trade_coin, self.bridge)
+            # Use original sell_alt method
+            order = self.manager.sell_alt(sol_coin, self.config.BRIDGE)
             
             if order:
                 self.position = None
-                self.logger.info(f"SELL executed: {order}")
+                self.db.set_current_coin(self.config.BRIDGE)
+                self.logger.info(f"SELL order executed: {order}")
             else:
                 self.logger.warning("SELL order failed")
                 
