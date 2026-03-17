@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 RSI Trading Bot - RSI(21,25,95) on SOL/USDT
-Uses Binance TESTNET for paper trading
+Minimal version - REST API only
 """
 
 import os
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 # Configuration
 API_KEY = os.environ.get('API_KEY', '')
 API_SECRET = os.environ.get('API_SECRET', '')
-TESTNET = os.environ.get('TESTNET', 'false').lower() in ('true', '1', 'yes')
 SYMBOL = 'SOLUSDT'
 RSI_PERIOD = 21
 OVERSOLD = 25
@@ -25,13 +24,10 @@ CHECK_INTERVAL = 60  # seconds
 
 class RSIBot:
     def __init__(self):
-        # Use testnet if TESTNET=true
-        self.client = Client(API_KEY, API_SECRET, testnet=TESTNET)
+        self.client = Client(API_KEY, API_SECRET)
         self.position = None
         self.price_history = []
         logger.info(f"RSI Bot initialized: RSI({RSI_PERIOD},{OVERSOLD},{OVERBOUGHT}) on {SYMBOL}")
-        if TESTNET:
-            logger.info("*** TESTNET MODE - Using Binance Testnet ***")
     
     def get_price(self):
         try:
@@ -76,9 +72,11 @@ class RSIBot:
                 logger.warning(f"Insufficient USDT: {usdt}")
                 return False
             
+            # Get current price
             price = self.get_price()
-            quantity = (usdt * 0.99) / price
+            quantity = (usdt * 0.99) / price  # Leave 1% buffer
             
+            # Place market order
             order = self.client.order_market_buy(symbol=SYMBOL, quantity=quantity)
             logger.info(f"BUY order executed: {order}")
             self.position = 'BUY'
@@ -110,11 +108,7 @@ class RSIBot:
     def run(self):
         logger.info("Starting RSI Bot...")
         
-        if TESTNET:
-            logger.info("="*50)
-            logger.info("*** TESTNET MODE - No real money ***")
-            logger.info("="*50)
-        
+        # Check initial position
         self.check_position()
         
         while True:
@@ -137,12 +131,10 @@ class RSIBot:
                 
                 # Check signals
                 if self.position is None and rsi < OVERSOLD:
-                    mode = "[TESTNET] " if TESTNET else ""
-                    logger.info(f"{mode}RSI oversold ({rsi:.2f} < {OVERSOLD}) - BUYING")
+                    logger.info(f"RSI oversold ({rsi:.2f} < {OVERSOLD}) - BUYING")
                     self.buy()
                 elif self.position == 'BUY' and rsi > OVERBOUGHT:
-                    mode = "[TESTNET] " if TESTNET else ""
-                    logger.info(f"{mode}RSI overbought ({rsi:.2f} > {OVERBOUGHT}) - SELLING")
+                    logger.info(f"RSI overbought ({rsi:.2f} > {OVERBOUGHT}) - SELLING")
                     self.sell()
                 
             except Exception as e:
@@ -156,14 +148,7 @@ if __name__ == '__main__':
         print("Please set API_KEY and API_SECRET environment variables:")
         print("  export API_KEY='your_api_key'")
         print("  export API_SECRET='your_api_secret'")
-        print("\nFor paper trading (testnet):")
-        print("  export TESTNET=true")
         exit(1)
-    
-    if TESTNET:
-        print("="*50)
-        print("TESTNET MODE - Using Binance Testnet")
-        print("="*50)
     
     bot = RSIBot()
     bot.run()
