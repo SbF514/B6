@@ -2,8 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies without conflicting with system packages
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+# Install dependencies with newer pip resolver
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install with relaxed dependencies
+RUN pip install --no-cache-dir python-binance sqlalchemy schedule apprise flask gunicorn flask-cors flask-socketio eventlet python-socketio cachetools sqlitedict unicorn-binance-websocket-api unicorn-fy
 
 COPY . .
 
