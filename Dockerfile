@@ -2,12 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies with newer pip resolver
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+# Copy requirements first
+COPY requirements.txt .
 
-# Install with relaxed dependencies
-RUN pip install --no-cache-dir python-binance sqlalchemy schedule apprise flask gunicorn flask-cors flask-socketio eventlet python-socketio cachetools sqlitedict unicorn-binance-websocket-api unicorn-fy
+# Install dependencies
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
+# Copy rest of files
 COPY . .
 
 CMD ["python", "-m", "binance_trade_bot"]
