@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 RSI Trading Bot - RSI(21,25,95) on SOL/USDT
-Minimal version - REST API only
+Uses Binance TESTNET for paper trading
 """
 
 import os
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 API_KEY = os.environ.get('API_KEY', '')
 API_SECRET = os.environ.get('API_SECRET', '')
-TEST_MODE = os.environ.get('TEST_MODE', 'false').lower() in ('true', '1', 'yes')
+TESTNET = os.environ.get('TESTNET', 'false').lower() in ('true', '1', 'yes')
 SYMBOL = 'SOLUSDT'
 RSI_PERIOD = 21
 OVERSOLD = 25
@@ -25,18 +25,13 @@ CHECK_INTERVAL = 60  # seconds
 
 class RSIBot:
     def __init__(self):
-        self.client = Client(API_KEY, API_SECRET)
+        # Use testnet if TESTNET=true
+        self.client = Client(API_KEY, API_SECRET, testnet=TESTNET)
         self.position = None
         self.price_history = []
-        
-        # Paper trading state
-        self.paper_balance_usdt = 10000  # Start with $10,000 fake USDT
-        self.paper_balance_sol = 0
-        
-        if TEST_MODE:
-            logger.info(f"TEST MODE ENABLED - Paper Trading")
-            logger.info(f"Starting paper balance: ${self.paper_balance_usdt:.2f}")
         logger.info(f"RSI Bot initialized: RSI({RSI_PERIOD},{OVERSOLD},{OVERBOUGHT}) on {SYMBOL}")
+        if TESTNET:
+            logger.info("*** TESTNET MODE - Using Binance Testnet ***")
     
     def get_price(self):
         try:
@@ -64,13 +59,6 @@ class RSIBot:
         return 100 - (100 / (1 + rs))
     
     def get_balance(self, asset):
-        if TEST_MODE:
-            if asset == 'USDT':
-                return self.paper_balance_usdt
-            elif asset == 'SOL':
-                return self.paper_balance_sol
-            return 0
-        
         try:
             acc = self.client.get_account()
             for bal in acc['balances']:
@@ -82,19 +70,6 @@ class RSIBot:
             return 0
     
     def buy(self):
-        if TEST_MODE:
-            # Paper trade - just log
-            price = self.get_price()
-            if price and self.paper_balance_usdt >= 10:
-                quantity = (self.paper_balance_usdt * 0.99) / price
-                cost = quantity * price
-                self.paper_balance_sol = quantity
-                self.paper_balance_usdt -= cost
-                logger.info(f"[PAPER] BUY {quantity:.4f} SOL at ${price:.2f} = ${cost:.2f}")
-                logger.info(f"[PAPER] New balance: ${self.paper_balance_usdt:.2f} USDT, {self.paper_balance_sol:.4f} SOL")
-                self.position = 'BUY'
-            return True
-        
         try:
             usdt = self.get_balance('USDT')
             if usdt < 10:
@@ -113,18 +88,6 @@ class RSIBot:
             return False
     
     def sell(self):
-        if TEST_MODE:
-            # Paper trade - just log
-            price = self.get_price()
-            if price and self.paper_balance_sol > 0:
-                proceeds = self.paper_balance_sol * price
-                self.paper_balance_usdt += proceeds * 0.999  # Simulate 0.1% fee
-                logger.info(f"[PAPER] SELL {self.paper_balance_sol:.4f} SOL at ${price:.2f} = ${proceeds:.2f}")
-                logger.info(f"[PAPER] New balance: ${self.paper_balance_usdt:.2f} USDT, 0 SOL")
-                self.paper_balance_sol = 0
-                self.position = None
-            return True
-        
         try:
             sol = self.get_balance('SOL')
             if sol <= 0:
@@ -140,11 +103,6 @@ class RSIBot:
             return False
     
     def check_position(self):
-        if TEST_MODE:
-            self.position = 'BUY' if self.paper_balance_sol > 0 else None
-            logger.info(f"[PAPER] Current position: {self.position}, Balance: ${self.paper_balance_usdt:.2f}")
-            return
-        
         sol = self.get_balance('SOL')
         self.position = 'BUY' if sol > 0 else None
         logger.info(f"Current position: {self.position}")
@@ -152,9 +110,9 @@ class RSIBot:
     def run(self):
         logger.info("Starting RSI Bot...")
         
-        if TEST_MODE:
+        if TESTNET:
             logger.info("="*50)
-            logger.info("PAPER TRADING MODE - NO REAL MONEY")
+            logger.info("*** TESTNET MODE - No real money ***")
             logger.info("="*50)
         
         self.check_position()
@@ -179,11 +137,11 @@ class RSIBot:
                 
                 # Check signals
                 if self.position is None and rsi < OVERSOLD:
-                    mode = "[PAPER] " if TEST_MODE else ""
+                    mode = "[TESTNET] " if TESTNET else ""
                     logger.info(f"{mode}RSI oversold ({rsi:.2f} < {OVERSOLD}) - BUYING")
                     self.buy()
                 elif self.position == 'BUY' and rsi > OVERBOUGHT:
-                    mode = "[PAPER] " if TEST_MODE else ""
+                    mode = "[TESTNET] " if TESTNET else ""
                     logger.info(f"{mode}RSI overbought ({rsi:.2f} > {OVERBOUGHT}) - SELLING")
                     self.sell()
                 
@@ -198,14 +156,13 @@ if __name__ == '__main__':
         print("Please set API_KEY and API_SECRET environment variables:")
         print("  export API_KEY='your_api_key'")
         print("  export API_SECRET='your_api_secret'")
-        print("\nOptional - Paper Trading:")
-        print("  export TEST_MODE=true")
-        print("  (Set TEST_MODE=true to simulate trades without real money)")
+        print("\nFor paper trading (testnet):")
+        print("  export TESTNET=true")
         exit(1)
     
-    if TEST_MODE:
+    if TESTNET:
         print("="*50)
-        print("PAPER TRADING MODE ENABLED")
+        print("TESTNET MODE - Using Binance Testnet")
         print("="*50)
     
     bot = RSIBot()
