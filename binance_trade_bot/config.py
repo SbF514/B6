@@ -20,7 +20,7 @@ class Config:  # pylint: disable=too-few-public-methods,too-many-instance-attrib
             "scout_sleep_time": "5",
             "hourToKeepScoutHistory": "1",
             "tld": "com",
-            "strategy": "default",
+            "strategy": "rsi",
             "sell_timeout": "0",
             "buy_timeout": "0",
             "testnet": False,
