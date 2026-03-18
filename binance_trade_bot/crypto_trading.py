@@ -66,7 +66,8 @@ def main():
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Couldn't access Binance API - API keys may be wrong or lack sufficient permissions")
         logger.error(e)
-        return
+        # Don't return - keep running so the web service doesn't exit
+        logger.warning("Continuing anyway...")
     strategy = get_strategy(config.STRATEGY)
     if strategy is None:
         logger.error("Invalid strategy name")
