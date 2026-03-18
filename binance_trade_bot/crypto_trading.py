@@ -1,20 +1,59 @@
 #!python3
 import os
+import sys
 import time
 
-from .binance_api_manager import BinanceAPIManager
-from .config import Config
-from .database import Database
-from .logger import Logger
-from .scheduler import SafeScheduler
-from .strategies import get_strategy
+print("[DEBUG] Starting script...")
+print(f"[DEBUG] Python: {sys.version}")
+
+try:
+    from .binance_api_manager import BinanceAPIManager
+    print("[DEBUG] Imported BinanceAPIManager")
+except Exception as e:
+    print(f"[ERROR] Failed to import BinanceAPIManager: {e}")
+    raise
+
+try:
+    from .config import Config
+    print("[DEBUG] Imported Config")
+except Exception as e:
+    print(f"[ERROR] Failed to import Config: {e}")
+    raise
+
+try:
+    from .database import Database
+    print("[DEBUG] Imported Database")
+except Exception as e:
+    print(f"[ERROR] Failed to import Database: {e}")
+    raise
+
+try:
+    from .logger import Logger
+    print("[DEBUG] Imported Logger")
+except Exception as e:
+    print(f"[ERROR] Failed to import Logger: {e}")
+    raise
+
+try:
+    from .scheduler import SafeScheduler
+    print("[DEBUG] Imported SafeScheduler")
+except Exception as e:
+    print(f"[ERROR] Failed to import SafeScheduler: {e}")
+    raise
+
+try:
+    from .strategies import get_strategy
+    print("[DEBUG] Imported get_strategy")
+except Exception as e:
+    print(f"[ERROR] Failed to import get_strategy: {e}")
+    raise
 
 
 def main():
     logger = Logger()
     logger.info("Starting")
     logger.info(f"[DEBUG] Current directory: {os.getcwd()}")
-    logger.info(f"[DEBUG] Files in current dir: {os.listdir('.')}")
+    logger.info(f"[DEBUG] Files: {', '.join(os.listdir('.'))}")
 
     config = Config()
     logger.info(f"[DEBUG] TESTNET={config.TESTNET}")
