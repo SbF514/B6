@@ -50,10 +50,33 @@ except Exception as e:
 
 
 def main():
-    logger = Logger()
+    print("[DEBUG] main() starting...")
+    try:
+        logger = Logger()
+        print("[DEBUG] Logger created")
+    except Exception as e:
+        print(f"[ERROR] Logger failed: {e}")
+        raise
+    
+    print("[DEBUG] About to log 'Starting'")
     logger.info("Starting")
     logger.info(f"[DEBUG] Current directory: {os.getcwd()}")
     logger.info(f"[DEBUG] Files: {', '.join(os.listdir('.'))}")
+    print("[DEBUG] Logged Starting")
+
+    print("[DEBUG] Creating Config...")
+    config = Config()
+    print("[DEBUG] Config created")
+    logger.info(f"[DEBUG] TESTNET={config.TESTNET}")
+    logger.info(f"[DEBUG] API_KEY={'set' if config.BINANCE_API_KEY else 'NOT SET'}")
+    
+    print("[DEBUG] Creating Database...")
+    db = Database(logger, config)
+    print("[DEBUG] Database created")
+    
+    print("[DEBUG] Creating BinanceAPIManager...")
+    manager = BinanceAPIManager(config, db, logger, config.TESTNET)
+    print("[DEBUG] BinanceAPIManager created")
 
     config = Config()
     logger.info(f"[DEBUG] TESTNET={config.TESTNET}")
