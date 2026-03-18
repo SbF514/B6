@@ -36,12 +36,15 @@ class BinanceAPIManager:
             self.binance_client = None
             return
         
-        # Setup websockets (skip if rate limited)
+        # Setup websockets (skip if rate limited or testnet)
         self.stream_manager: Optional[BinanceStreamManager] = None
-        try:
-            self.setup_websockets()
-        except Exception as e:
-            self.logger.warning(f"WebSocket setup failed: {e}")
+        if not testnet:
+            try:
+                self.setup_websockets()
+            except Exception as e:
+                self.logger.warning(f"WebSocket setup failed: {e}")
+        else:
+            self.logger.info("Skipping websockets in testnet mode")
 
     def setup_websockets(self):
         self.stream_manager = BinanceStreamManager(
