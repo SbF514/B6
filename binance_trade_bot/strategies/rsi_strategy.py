@@ -10,7 +10,7 @@ from binance_trade_bot.models import Coin
 from binance_trade_bot.auto_trader import AutoTrader
 
 
-class RSIStrategy(AutoTrader):
+class Strategy(AutoTrader):
     def __init__(self, manager: BinanceAPIManager, db: Database, logger: Logger, config: Config):
         super().__init__(manager, db, logger, config)
         
@@ -167,5 +167,5 @@ class RSIStrategy(AutoTrader):
 def get_strategy(name: str):
     """Get strategy by name"""
     if name == "rsi":
-        return RSIStrategy
+        return Strategy
     return None
