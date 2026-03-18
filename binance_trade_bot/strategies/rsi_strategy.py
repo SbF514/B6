@@ -95,16 +95,23 @@ class Strategy(AutoTrader):
             self.logger.error(f"Error in scout: {e}")
 
     def _calculate_rsi(self, prices, period):
-        """Calculate RSI locally"""
+        """Calculate RSI using Wilder's smoothing (proper RSI)"""
         if len(prices) < period + 1:
             return 50
         
+        # Use Wilder's RSI smoothing method
         deltas = [prices[i] - prices[i-1] for i in range(1, len(prices))]
         gains = [d if d > 0 else 0 for d in deltas]
-        losses = [d if d < 0 else 0 for d in deltas]
+        losses = [-d if d < 0 else 0 for d in deltas]
         
+        # First average - simple moving average
         avg_gain = sum(gains[:period]) / period
         avg_loss = sum(losses[:period]) / period
+        
+        # Wilder's smoothing
+        for i in range(period, len(gains)):
+            avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+            avg_loss = (avg_loss * (period - 1) + losses[i]) / period
         
         if avg_loss == 0:
             return 100
