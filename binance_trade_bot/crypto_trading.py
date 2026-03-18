@@ -1,4 +1,5 @@
 #!python3
+import os
 import time
 
 from .binance_api_manager import BinanceAPIManager
@@ -12,8 +13,12 @@ from .strategies import get_strategy
 def main():
     logger = Logger()
     logger.info("Starting")
+    logger.info(f"[DEBUG] Current directory: {os.getcwd()}")
+    logger.info(f"[DEBUG] Files in current dir: {os.listdir('.')}")
 
     config = Config()
+    logger.info(f"[DEBUG] TESTNET={config.TESTNET}")
+    logger.info(f"[DEBUG] API_KEY={'set' if config.BINANCE_API_KEY else 'NOT SET'}")
     db = Database(logger, config)
     manager = BinanceAPIManager(config, db, logger, config.TESTNET)
     # check if we can access API feature that require valid config
