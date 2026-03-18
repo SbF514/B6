@@ -97,18 +97,28 @@ class BinanceAPIManager:
         """
         Get ticker price of a specific coin
         """
+        # Check cache first
         price = self.cache.ticker_values.get(ticker_symbol, None)
-        if price is None and ticker_symbol not in self.cache.non_existent_tickers:
-            self.cache.ticker_values = {
-                ticker["symbol"]: float(ticker["price"]) for ticker in self.binance_client.get_symbol_ticker()
-            }
-            self.logger.debug(f"Fetched all ticker prices: {self.cache.ticker_values}")
-            price = self.cache.ticker_values.get(ticker_symbol, None)
-            if price is None:
-                self.logger.info(f"Ticker does not exist: {ticker_symbol} - will not be fetched from now on")
-                self.cache.non_existent_tickers.add(ticker_symbol)
+        if price is not None:
+            return price
+            
+        if ticker_symbol not in self.cache.non_existent_tickers:
+            try:
+                # Fetch only the single ticker we need (much fewer API calls)
+                ticker = self.binance_client.get_symbol_ticker(symbol=ticker_symbol)
+                price = float(ticker["price"])
+                self.cache.ticker_values[ticker_symbol] = price
+                self.logger.debug(f"Fetched {ticker_symbol}: {price}")
+                return price
+            except BinanceAPIException as e:
+                if "Not found" in str(e):
+                    self.logger.info(f"Ticker does not exist: {ticker_symbol}")
+                    self.cache.non_existent_tickers.add(ticker_symbol)
+                else:
+                    self.logger.warning(f"Error fetching {ticker_symbol}: {e}")
+                return None
 
-        return price
+        return None
 
     def get_currency_balance(self, currency_symbol: str, force=False) -> float:
         """
