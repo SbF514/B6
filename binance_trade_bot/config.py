@@ -17,7 +17,7 @@ class Config:  # pylint: disable=too-few-public-methods,too-many-instance-attrib
             "use_margin": "no",
             "scout_multiplier": "5",
             "scout_margin": "0.8",
-            "scout_sleep_time": "60",
+            "scout_sleep_time": "5",
             "hourToKeepScoutHistory": "1",
             "tld": "com",
             "strategy": "rsi",
