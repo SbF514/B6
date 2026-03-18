@@ -46,8 +46,12 @@ class RSIStrategy(AutoTrader):
     def scout(self):
         """Main trading logic - check for RSI signals"""
         try:
+            self.logger.info(f"=== SCOUT START ===")
+            
             # Get current SOL/USDT price using original API method
+            self.logger.info(f"Fetching price for {self.trade_coin_symbol}{self.config.BRIDGE.symbol}...")
             current_price = self.manager.get_ticker_price(self.trade_coin_symbol + self.config.BRIDGE.symbol)
+            self.logger.info(f"Price fetched: {current_price}")
             
             if current_price is None:
                 self.logger.warning(f"Could not get price for {self.trade_coin_symbol}")
@@ -55,6 +59,7 @@ class RSIStrategy(AutoTrader):
             
             # Add to price history
             self.price_history.append(current_price)
+            self.logger.info(f"Price history length: {len(self.price_history)}")
             
             # Keep last 50 prices
             if len(self.price_history) > 50:
@@ -62,23 +67,29 @@ class RSIStrategy(AutoTrader):
             
             # Need enough data for RSI
             if len(self.price_history) < self.rsi_period + 1:
+                self.logger.info(f"Not enough data for RSI. Have {len(self.price_history)}, need {self.rsi_period + 1}")
                 return
             
             # Calculate RSI locally
             rsi_value = self._calculate_rsi(self.price_history, self.rsi_period)
             
-            self.logger.info(f"Price: ${current_price}, RSI({self.rsi_period}): {rsi_value:.2f}")
+            self.logger.info(f">>> Price: ${current_price}, RSI({self.rsi_period}): {rsi_value:.2f} <<<")
+            self.logger.info(f"Position: {self.position}, Oversold threshold: {self.rsi_oversold}, Overbought threshold: {self.rsi_overbought}")
             
             # Check signals
             if self.position is None and rsi_value < self.rsi_oversold:
                 # BUY - RSI oversold
-                self.logger.info(f"RSI oversold ({rsi_value:.2f} < {self.rsi_oversold}) - Buying {self.trade_coin_symbol}")
+                self.logger.info(f">>> RSI oversold ({rsi_value:.2f} < {self.rsi_oversold}) - BUY SIGNAL <<<")
                 self._buy_sol()
                 
             elif self.position == "BUY" and rsi_value > self.rsi_overbought:
                 # SELL - RSI overbought
-                self.logger.info(f"RSI overbought ({rsi_value:.2f} > {self.rsi_overbought}) - Selling {self.trade_coin_symbol}")
-                self._sell_sol()
+                self.logger.info(f">>> RSI overbought ({rsi_value:.2f} > {self.rsi_overbought}) - SELL SIGNAL <<<")
+                self._sell_sol}")
+            else:
+                self.logger.info("No trading signal")
+                
+            self.logger.info(f"=== SCOUT END ===")
                 
         except Exception as e:
             self.logger.error(f"Error in scout: {e}")
