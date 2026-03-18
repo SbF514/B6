@@ -24,6 +24,9 @@ class Config:  # pylint: disable=too-few-public-methods,too-many-instance-attrib
             "sell_timeout": "0",
             "buy_timeout": "0",
             "testnet": False,
+            "current_coin": "",
+            "api_key": "",
+            "api_secret_key": "",
         }
 
         if not os.path.exists(CFG_FL_NAME):
