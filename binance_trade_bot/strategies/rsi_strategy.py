@@ -1,13 +1,13 @@
 # RSI Strategy - Implements RSI(21,25,95) on SOL/USDT
 # Extends AutoTrader from original binance-trade-bot
 
-from .binance_api_manager import BinanceAPIManager
-from .config import Config
-from .crypto_trading import main
-from .database import Database
-from .logger import Logger
-from .models import Coin
-from .auto_trader import AutoTrader
+from binance_trade_bot.binance_api_manager import BinanceAPIManager
+from binance_trade_bot.config import Config
+from binance_trade_bot.crypto_trading import main
+from binance_trade_bot.database import Database
+from binance_trade_bot.logger import Logger
+from binance_trade_bot.models import Coin
+from binance_trade_bot.auto_trader import AutoTrader
 
 
 class RSIStrategy(AutoTrader):
