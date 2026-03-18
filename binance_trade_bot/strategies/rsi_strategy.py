@@ -85,7 +85,7 @@ class RSIStrategy(AutoTrader):
             elif self.position == "BUY" and rsi_value > self.rsi_overbought:
                 # SELL - RSI overbought
                 self.logger.info(f">>> RSI overbought ({rsi_value:.2f} > {self.rsi_overbought}) - SELL SIGNAL <<<")
-                self._sell_sol}")
+                self._sell_sol()
             else:
                 self.logger.info("No trading signal")
                 
