@@ -16,21 +16,32 @@ from .models import Coin
 
 class BinanceAPIManager:
     def __init__(self, config: Config, db: Database, logger: Logger, testnet = False):
-        # initializing the client class calls `ping` API endpoint, verifying the connection
-        self.binance_client = Client(
-            config.BINANCE_API_KEY,
-            config.BINANCE_API_SECRET_KEY,
-            tld=config.BINANCE_TLD,
-            testnet=testnet,
-        )
         self.db = db
         self.logger = logger
         self.config = config
         self.testnet = testnet
-
         self.cache = BinanceCache()
+        
+        # Initialize client with try/except to handle rate limits
+        try:
+            self.binance_client = Client(
+                config.BINANCE_API_KEY,
+                config.BINANCE_API_SECRET_KEY,
+                tld=config.BINANCE_TLD,
+                testnet=testnet,
+            )
+            self.logger.info("Binance client initialized successfully")
+        except BinanceAPIException as e:
+            self.logger.error(f"Failed to initialize Binance client: {e}")
+            self.binance_client = None
+            return
+        
+        # Setup websockets (skip if rate limited)
         self.stream_manager: Optional[BinanceStreamManager] = None
-        self.setup_websockets()
+        try:
+            self.setup_websockets()
+        except Exception as e:
+            self.logger.warning(f"WebSocket setup failed: {e}")
 
     def setup_websockets(self):
         self.stream_manager = BinanceStreamManager(
