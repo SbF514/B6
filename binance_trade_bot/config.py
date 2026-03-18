@@ -1,5 +1,4 @@
-# Config for RSI Trading Bot
-
+# Config consts
 import configparser
 import os
 
@@ -9,25 +8,26 @@ CFG_FL_NAME = "user.cfg"
 USER_CFG_SECTION = "binance_user_config"
 
 
-class Config:
+class Config:  # pylint: disable=too-few-public-methods,too-many-instance-attributes
     def __init__(self):
+        # Init config
         config = configparser.ConfigParser()
         config["DEFAULT"] = {
             "bridge": "USDT",
             "use_margin": "no",
             "scout_multiplier": "5",
             "scout_margin": "0.8",
-            "scout_sleep_time": "60",  # Check every 60 seconds
+            "scout_sleep_time": "5",
             "hourToKeepScoutHistory": "1",
             "tld": "com",
-            "strategy": "rsi",  # Use RSI strategy by default
+            "strategy": "default",
             "sell_timeout": "0",
             "buy_timeout": "0",
             "testnet": False,
         }
 
         if not os.path.exists(CFG_FL_NAME):
-            print("No configuration file (user.cfg) found! Using default config...")
+            print("No configuration file (user.cfg) found! See README. Assuming default config...")
             config[USER_CFG_SECTION] = {}
         else:
             config.read(CFG_FL_NAME)
@@ -36,11 +36,12 @@ class Config:
         self.BRIDGE = Coin(self.BRIDGE_SYMBOL, False)
         self.TESTNET = os.environ.get("TESTNET") or config.getboolean(USER_CFG_SECTION, "testnet")
 
-        # Scout settings
+        # Prune settings
         self.SCOUT_HISTORY_PRUNE_TIME = float(
             os.environ.get("HOURS_TO_KEEP_SCOUTING_HISTORY") or config.get(USER_CFG_SECTION, "hourToKeepScoutHistory")
         )
 
+        # Get config for scout
         self.SCOUT_MULTIPLIER = float(
             os.environ.get("SCOUT_MULTIPLIER") or config.get(USER_CFG_SECTION, "scout_multiplier")
         )
@@ -48,15 +49,22 @@ class Config:
             os.environ.get("SCOUT_SLEEP_TIME") or config.get(USER_CFG_SECTION, "scout_sleep_time")
         )
 
-        # Binance settings
-        self.BINANCE_API_KEY = os.environ.get("API_KEY") or config.get(USER_CFG_SECTION, "api_key")
-        self.BINANCE_API_SECRET_KEY = os.environ.get("API_SECRET_KEY") or config.get(USER_CFG_SECTION, "api_secret_key")
+        # Get config for binance
+        self.BINANCE_API_KEY = os.environ.get("API_KEY") or os.environ.get("API_SECRET") or config.get(USER_CFG_SECTION, "api_key")
+        self.BINANCE_API_SECRET_KEY = os.environ.get("API_SECRET_KEY") or os.environ.get("API_SECRET") or config.get(USER_CFG_SECTION, "api_secret_key")
+        
+        print(f"[DEBUG] API_KEY env: {os.environ.get('API_KEY')}")
+        print(f"[DEBUG] API_SECRET env: {os.environ.get('API_SECRET')}")
+        print(f"[DEBUG] API_SECRET_KEY env: {os.environ.get('API_SECRET_KEY')}")
+        print(f"[DEBUG] Loaded API_KEY: {self.BINANCE_API_KEY[:10] if self.BINANCE_API_KEY else 'None'}...")
+        print(f"[DEBUG] TESTNET: {self.TESTNET}")
         self.BINANCE_TLD = os.environ.get("TLD") or config.get(USER_CFG_SECTION, "tld")
 
-        # Supported coins - default to SOL
+        # Get supported coin list from the environment
         supported_coin_list = [
-            coin.strip() for coin in os.environ.get("SUPPORTED_COIN_LIST", "SOL").split() if coin.strip()
+            coin.strip() for coin in os.environ.get("SUPPORTED_COIN_LIST", "").split() if coin.strip()
         ]
+        # Get supported coin list from supported_coin_list file
         if not supported_coin_list and os.path.exists("supported_coin_list"):
             with open("supported_coin_list") as rfh:
                 for line in rfh:
