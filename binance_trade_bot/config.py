@@ -53,10 +53,8 @@ class Config:  # pylint: disable=too-few-public-methods,too-many-instance-attrib
         self.BINANCE_API_KEY = os.environ.get("API_KEY") or os.environ.get("API_SECRET") or config.get(USER_CFG_SECTION, "api_key")
         self.BINANCE_API_SECRET_KEY = os.environ.get("API_SECRET_KEY") or os.environ.get("API_SECRET") or config.get(USER_CFG_SECTION, "api_secret_key")
         
-        print(f"[DEBUG] API_KEY env: {os.environ.get('API_KEY')}")
-        print(f"[DEBUG] API_SECRET env: {os.environ.get('API_SECRET')}")
-        print(f"[DEBUG] API_SECRET_KEY env: {os.environ.get('API_SECRET_KEY')}")
-        print(f"[DEBUG] Loaded API_KEY: {self.BINANCE_API_KEY[:10] if self.BINANCE_API_KEY else 'None'}...")
+        print(f"[DEBUG] API_KEY set: {bool(self.BINANCE_API_KEY)}")
+        print(f"[DEBUG] API_SECRET set: {bool(self.BINANCE_API_SECRET_KEY)}")
         print(f"[DEBUG] TESTNET: {self.TESTNET}")
         self.BINANCE_TLD = os.environ.get("TLD") or config.get(USER_CFG_SECTION, "tld")
 
