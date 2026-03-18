@@ -135,14 +135,21 @@ class BinanceAPIManager:
         with self.cache.open_balances() as cache_balances:
             balance = cache_balances.get(currency_symbol, None)
             if force or balance is None:
-                cache_balances.clear()
-                cache_balances.update(
-                    {
-                        currency_balance["asset"]: float(currency_balance["free"])
-                        for currency_balance in self.binance_client.get_account()["balances"]
-                    }
-                )
-                self.logger.debug(f"Fetched all balances: {cache_balances}")
+                try:
+                    account = self.binance_client.get_account()
+                    cache_balances.clear()
+                    cache_balances.update(
+                        {
+                            currency_balance["asset"]: float(currency_balance["free"])
+                            for currency_balance in account["balances"]
+                        }
+                    )
+                    self.logger.debug(f"Fetched all balances: {cache_balances}")
+                except BinanceAPIException as e:
+                    self.logger.warning(f"Could not fetch account balance: {e}")
+                    cache_balances[currency_symbol] = 0.0
+                    return 0.0
+                    
                 if currency_symbol not in cache_balances:
                     cache_balances[currency_symbol] = 0.0
                     return 0.0
