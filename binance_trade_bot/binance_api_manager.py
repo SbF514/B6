@@ -24,7 +24,8 @@ class BinanceAPIManager:
         
         # Initialize client with try/except to handle rate limits
         try:
-            self.binance_client = Client(
+            print(f"[DEBUG] Creating Client with API_KEY: {config.BINANCE_API_KEY[:10] if config.BINANCE_API_KEY else None}...")
+        self.binance_client = Client(
                 config.BINANCE_API_KEY,
                 config.BINANCE_API_SECRET_KEY,
                 tld=config.BINANCE_TLD,
