@@ -73,6 +73,10 @@ class Strategy(AutoTrader):
             # Calculate RSI locally
             rsi_value = self._calculate_rsi(self.price_history, self.rsi_period)
             
+            # Debug: show price variation
+            price_min = min(self.price_history[-10:])
+            price_max = max(self.price_history[-10:])
+            self.logger.info(f"Price range (last 10): {price_min:.2f} - {price_max:.2f}")
             self.logger.info(f">>> Price: ${current_price}, RSI({self.rsi_period}): {rsi_value:.2f} <<<")
             self.logger.info(f"Position: {self.position}, Oversold threshold: {self.rsi_oversold}, Overbought threshold: {self.rsi_overbought}")
             
@@ -95,29 +99,41 @@ class Strategy(AutoTrader):
             self.logger.error(f"Error in scout: {e}")
 
     def _calculate_rsi(self, prices, period):
-        """Calculate RSI using Wilder's smoothing (proper RSI)"""
+        """Calculate RSI properly"""
         if len(prices) < period + 1:
             return 50
         
-        # Use Wilder's RSI smoothing method
-        deltas = [prices[i] - prices[i-1] for i in range(1, len(prices))]
-        gains = [d if d > 0 else 0 for d in deltas]
-        losses = [-d if d < 0 else 0 for d in deltas]
+        # Get recent changes
+        changes = []
+        for i in range(1, len(prices)):
+            change = prices[i] - prices[i-1]
+            changes.append(change)
         
-        # First average - simple moving average
-        avg_gain = sum(gains[:period]) / period
-        avg_loss = sum(losses[:period]) / period
+        if len(changes) < period:
+            return 50
         
-        # Wilder's smoothing
-        for i in range(period, len(gains)):
-            avg_gain = (avg_gain * (period - 1) + gains[i]) / period
-            avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+        # Use only the last period changes for calculation
+        recent = changes[-period:]
+        
+        gains = [c for c in recent if c > 0]
+        losses = [-c for c in recent if c < 0]
+        
+        if not gains:
+            return 100  # All negative or zero
+        if not losses:
+            return 0  # All positive
+        
+        avg_gain = sum(gains) / period
+        avg_loss = sum(losses) / period
         
         if avg_loss == 0:
             return 100
         
         rs = avg_gain / avg_loss
-        return 100 - (100 / (1 + rs))
+        rsi = 100 - (100 / (1 + rs))
+        
+        # Clamp to valid range
+        return max(0, min(100, rsi))
 
     def _buy_sol(self):
         """Buy SOL using original bot method"""
