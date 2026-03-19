@@ -64,6 +64,9 @@
         </div>
         
         <div class="card">
+            <h2>Account Balances</h2>
+            <div id="account-balances">Loading...</div>
+            
             <h2>Bot Status</h2>
             <div id="status">Loading...</div>
             <div class="refresh">Auto-refreshes every 5 seconds</div>
@@ -75,6 +78,20 @@
         let historyIndex = -1;
         
         async function fetchStatus() {
+        async function fetchAccount() {
+            try {
+                const res = await fetch('/api/account');
+                const data = await res.json();
+                if (data.balances) {
+                    const html = data.balances.slice(0, 10).map(b => `<p>${b.asset}: ${b.total.toFixed(4)}</p>`).join('\n');
+                    document.getElementById('account-balances').innerHTML = html;
+                } else {
+                    document.getElementById('account-balances').innerHTML = `<p class="status-error">${data.error || 'Error}</p>`;
+                }
+            } catch (e) {
+                document.getElementById('account-balances').innerHTML = `<p class="status-error">Error: ${e.message}</p>`;
+            }
+        }
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
@@ -144,7 +161,7 @@
         });
         
         // Auto refresh
-        fetchStatus();
+        fetchStatus(); fetchAccount();
         setInterval(fetchStatus, 5000);
     </script>
 </body>
