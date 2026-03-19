@@ -225,16 +225,9 @@ def index():
 def account():
     """Get account balances"""
     try:
-        import os
         from binance_trade_bot.binance_api_manager import BinanceAPIManager
         
-        # Debug: show env vars
-        api_key = os.environ.get("API_KEY") or os.environ.get("API_SECRET")
-        print(f"[account API] API_KEY from env: {api_key[:10] if api_key else 'None'}...")
-        
         config = Config()
-        print(f"[account API] Config loaded API_KEY: {config.BINANCE_API_KEY[:10] if config.BINANCE_API_KEY else 'None'}...")
-        
         logger = Logger("account_api")
         db = Database(logger, config)
         manager = BinanceAPIManager(config, db, logger, config.TESTNET)
