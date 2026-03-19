@@ -147,7 +147,6 @@ class BinanceAPIManager:
             balance = cache_balances.get(currency_symbol, None)
             if force or balance is None:
                 try:
-                try:
                     account = self.binance_client.get_account()
                     self.logger.info(f"[DEBUG] Account fetched successfully: {account.get('balances', [])[:5]}...")
                     cache_balances.clear()
