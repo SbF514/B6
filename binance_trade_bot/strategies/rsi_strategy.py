@@ -8,6 +8,7 @@ from binance_trade_bot.database import Database
 from binance_trade_bot.logger import Logger
 from binance_trade_bot.models import Coin
 from binance_trade_bot.auto_trader import AutoTrader
+from binance_trade_bot import api_server
 
 
 class Strategy(AutoTrader):
@@ -72,6 +73,17 @@ class Strategy(AutoTrader):
             rsi_value = self._calculate_rsi(self.price_history, self.rsi_period)
             
             self.logger.info(f">>> Price: ${current_price}, RSI({self.rsi_period}): {rsi_value:.2f} <<<")
+            
+            # Update API status
+            try:
+                api_server.set_rsi_status(
+                    price=current_price,
+                    rsi=rsi_value,
+                    position=self.position,
+                    klines_range=f"{price_min:.2f} - {price_max:.2f}"
+                )
+            except Exception as e:
+                self.logger.warning(f"Could not update API status: {e}")
             self.logger.info(f"Position: {self.position}, Oversold: {self.rsi_oversold}, Overbought: {self.rsi_overbought}")
             
             # Check signals
