@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from itertools import groupby
 from typing import List, Tuple
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
+import os
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from sqlalchemy import func
@@ -144,9 +145,78 @@ def pairs():
         return jsonify([pair.info() for pair in all_pairs])
 
 
-@socketio.on("update", namespace="/backend")
-def handle_my_custom_event(json):
-    emit("update", json, namespace="/frontend", broadcast=True)
+# Global state for RSI strategy (set by the trading bot)
+_rsi_status = {
+    "price": None,
+    "rsi": None,
+    "position": None,
+    "last_update": None,
+    "klines_range": None,
+}
+
+# Store last commands and outputs for terminal
+_terminal_output = []
+
+
+def set_rsi_status(price=None, rsi=None, position=None, klines_range=None):
+    """Update RSI status from the trading bot"""
+    global _rsi_status
+    _rsi_status["price"] = price
+    _rsi_status["rsi"] = rsi
+    _rsi_status["position"] = position
+    _rsi_status["last_update"] = datetime.now().isoformat()
+    _rsi_status["klines_range"] = klines_range
+
+
+@app.route("/api/status")
+def status():
+    """Get current bot status"""
+    return jsonify({
+        "rsi": _rsi_status,
+        "timestamp": datetime.now().isoformat(),
+    })
+
+
+@app.route("/api/terminal", methods=["POST"])
+def terminal():
+    """Execute a command on the server"""
+    global _terminal_output
+    data = request.get_json()
+    command = data.get("command", "")
+    
+    if not command:
+        return jsonify({"error": "No command provided"}), 400
+    
+    # Security: only allow certain commands
+    allowed_commands = ["status", "ls", "ps", "date", "uptime", "df", "free"]
+    cmd_parts = command.strip().split()
+    if not cmd_parts or cmd_parts[0] not in allowed_commands:
+        _terminal_output.append(f"$ {command}")
+        _terminal_output.append(f"Error: Command not allowed. Allowed: {allowed_commands}")
+        return jsonify({"error": f"Command not allowed. Allowed: {allowed_commands}"}), 403
+    
+    try:
+        import subprocess
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=10)
+        output = result.stdout + result.stderr
+        _terminal_output.append(f"$ {command}")
+        _terminal_output.append(output if output else "(no output)")
+        # Keep only last 100 lines
+        _terminal_output = _terminal_output[-100:]
+        return jsonify({"output": output, "returncode": result.returncode})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/terminal/output")
+def terminal_output():
+    """Get terminal output history"""
+    return jsonify({"output": _terminal_output[-50:]})
+
+
+@app.route("/")
+def index():
+    return send_from_directory("../templates", "dashboard.html")
 
 
 if __name__ == "__main__":
