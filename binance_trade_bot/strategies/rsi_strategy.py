@@ -59,6 +59,12 @@ class Strategy(AutoTrader):
             
             # Add to price history
             self.price_history.append(current_price)
+            
+            # Debug: show price variation in history
+            if len(self.price_history) > 1:
+                unique_prices = len(set(self.price_history[-30:]))
+                self.logger.info(f"Price history: {len(self.price_history)} points, {unique_prices} unique in last 30")
+            
             self.logger.info(f"Price history length: {len(self.price_history)}")
             
             # Keep last 50 prices
