@@ -22,9 +22,8 @@ class BinanceAPIManager:
         self.testnet = testnet
         self.cache = BinanceCache()
         
-        # Initialize client with try/except to handle rate limits
+        # Initialize client
         try:
-            print(f"[DEBUG] Creating Client with API_KEY: {config.BINANCE_API_KEY[:10] if config.BINANCE_API_KEY else None}...")
             self.binance_client = Client(
                 config.BINANCE_API_KEY,
                 config.BINANCE_API_SECRET_KEY,
@@ -32,7 +31,7 @@ class BinanceAPIManager:
                 testnet=testnet,
             )
             self.logger.info("Binance client initialized successfully")
-        except BinanceAPIException as e:
+        except Exception as e:
             self.logger.error(f"Failed to initialize Binance client: {e}")
             self.binance_client = None
             return
