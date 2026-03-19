@@ -48,43 +48,31 @@ class Strategy(AutoTrader):
         try:
             self.logger.info(f"=== SCOUT START ===")
             
-            # Get current SOL/USDT price using original API method
-            self.logger.info(f"Fetching price for {self.trade_coin_symbol}{self.config.BRIDGE.symbol}...")
-            current_price = self.manager.get_ticker_price(self.trade_coin_symbol + self.config.BRIDGE.symbol)
-            self.logger.info(f"Price fetched: {current_price}")
+            # Fetch historical klines for proper RSI calculation
+            symbol = self.trade_coin_symbol + self.config.BRIDGE.symbol
+            self.logger.info(f"Fetching klines for {symbol}...")
             
-            if current_price is None:
-                self.logger.warning(f"Could not get price for {self.trade_coin_symbol}")
+            # Get 1-hour klines, last 100 candles
+            klines = self.manager.get_klines(symbol, interval="1h", limit=100)
+            
+            if not klines or len(klines) < self.rsi_period + 1:
+                self.logger.warning(f"Not enough kline data: {len(klines) if klines else 0}")
                 return
             
-            # Add to price history
-            self.price_history.append(current_price)
+            # Use the closing prices from klines
+            self.price_history = klines
+            current_price = klines[-1]
             
-            # Debug: show price variation in history
-            if len(self.price_history) > 1:
-                unique_prices = len(set(self.price_history[-30:]))
-                self.logger.info(f"Price history: {len(self.price_history)} points, {unique_prices} unique in last 30")
+            # Debug
+            price_min = min(klines[-30:])
+            price_max = max(klines[-30:])
+            self.logger.info(f"Klines: {len(klines)} points, range: {price_min:.2f} - {price_max:.2f}")
             
-            self.logger.info(f"Price history length: {len(self.price_history)}")
-            
-            # Keep last 50 prices
-            if len(self.price_history) > 50:
-                self.price_history = self.price_history[-50:]
-            
-            # Need enough data for RSI
-            if len(self.price_history) < self.rsi_period + 1:
-                self.logger.info(f"Not enough data for RSI. Have {len(self.price_history)}, need {self.rsi_period + 1}")
-                return
-            
-            # Calculate RSI locally
+            # Calculate RSI from historical data
             rsi_value = self._calculate_rsi(self.price_history, self.rsi_period)
             
-            # Debug: show price variation
-            price_min = min(self.price_history[-10:])
-            price_max = max(self.price_history[-10:])
-            self.logger.info(f"Price range (last 10): {price_min:.2f} - {price_max:.2f}")
             self.logger.info(f">>> Price: ${current_price}, RSI({self.rsi_period}): {rsi_value:.2f} <<<")
-            self.logger.info(f"Position: {self.position}, Oversold threshold: {self.rsi_oversold}, Overbought threshold: {self.rsi_overbought}")
+            self.logger.info(f"Position: {self.position}, Oversold: {self.rsi_oversold}, Overbought: {self.rsi_overbought}")
             
             # Check signals
             if self.position is None and rsi_value < self.rsi_oversold:
