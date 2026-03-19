@@ -216,7 +216,9 @@ def terminal_output():
 
 @app.route("/")
 def index():
-    return send_from_directory("../templates", "dashboard.html")
+    import os
+    template_path = os.path.join(os.path.dirname(__file__), "..", "templates", "dashboard.html")
+    return send_from_directory(os.path.dirname(template_path), "dashboard.html")
 
 
 @app.route("/api/account")
