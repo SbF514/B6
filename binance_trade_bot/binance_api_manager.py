@@ -128,6 +128,17 @@ class BinanceAPIManager:
 
         return None
 
+    def get_klines(self, symbol: str, interval: str = "1h", limit: int = 100):
+        """Get historical klines (candlestick) data"""
+        try:
+            klines = self.binance_client.get_klines(symbol=symbol, interval=interval, limit=limit)
+            # Returns list of [open_time, open, high, low, close, volume, close_time, ...]
+            closes = [float(k[4]) for k in klines]
+            return closes
+        except BinanceAPIException as e:
+            self.logger.warning(f"Error fetching klines: {e}")
+            return []
+
     def get_currency_balance(self, currency_symbol: str, force=False) -> float:
         """
         Get balance of a specific coin
