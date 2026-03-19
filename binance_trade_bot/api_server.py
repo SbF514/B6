@@ -188,7 +188,7 @@ def terminal():
         return jsonify({"error": "No command provided"}), 400
     
     # Security: only allow certain commands
-    allowed_commands = ["status", "ls", "ps", "date", "uptime", "df", "free"]
+    allowed_commands = ["status", "ls", "ps", "date", "uptime", "df", "free", "env", "cat", "head", "python", "pip"]
     cmd_parts = command.strip().split()
     if not cmd_parts or cmd_parts[0] not in allowed_commands:
         _terminal_output.append(f"$ {command}")
