@@ -219,5 +219,35 @@ def index():
     return send_from_directory("../templates", "dashboard.html")
 
 
+@app.route("/api/account")
+def account():
+    """Get account balances"""
+    try:
+        from binance_trade_bot.binance_api_manager import BinanceAPIManager
+        config = Config()
+        logger = Logger("account_api")
+        db = Database(logger, config)
+        manager = BinanceAPIManager(config, db, logger, config.TESTNET)
+        
+        try:
+            account = manager.binance_client.get_account()
+            balances = []
+            for b in account.get("balances", []):
+                free = float(b.get("free", 0))
+                locked = float(b.get("locked", 0))
+                if free + locked > 0:
+                    balances.append({
+                        "asset": b["asset"],
+                        "free": free,
+                        "locked": locked,
+                        "total": free + locked
+                    })
+            return jsonify({"balances": balances})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     socketio.run(app, debug=True, port=5123)
